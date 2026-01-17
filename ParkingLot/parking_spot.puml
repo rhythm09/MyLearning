@@ -1,0 +1,128 @@
+@startuml
+
+enum VehicleType {
+    TWO_WHEELER
+    FOUR_WHEELER
+}
+
+class Vehicle {
+    - vehicle_type : VehicleType
+    - vehicle_number : int
+    --
+    + getVehicleType() : VehicleType
+    + getVehicleNumber() : int
+}
+
+class Ticket {
+    - entry_time : long 
+    - vehicle : Vehicle
+    - parking_spot : ParkingSpot
+}
+
+class ParkingSpot {
+     - id : int
+     - vehicle : Vehicle
+     - price : int
+    --
+    + isEmpty() : bool 
+    + parkVehicle(Vehicle v) : void
+    + removeVehicle() : void
+}
+
+class TwoWheelerParkingSpot extends ParkingSpot 
+class FourWheelerParkingSpot extends ParkingSpot 
+
+' --- MANAGER LOGIC ---
+
+class ParkingSpotManager {
+    - list : List<ParkingSpot>
+    - parking_strategy : ParkingStrategy
+    --
+    + findParkingSpace() : ParkingSpot
+    + addParkingSpace(ParkingSpot ps) : void
+    + removeParkingSpace(ParkingSpot ps) : void
+    + parkVehicle(Vehicle v) : void
+    + removeVehicle(Vehicle v) : void
+}
+
+class TwoWheelerParkingSpotManager extends ParkingSpotManager
+class FourWheelerParkingSpotManager extends ParkingSpotManager
+
+' --- STRATEGY PATTERN (Finding) ---
+
+interface ParkingStrategy {
+    + findSpace(List<ParkingSpot> list) : ParkingSpot
+}
+
+class NearToEntrance implements ParkingStrategy
+class NearToEntranceAndElevator implements ParkingStrategy
+class NearToExit implements ParkingStrategy
+
+' --- FACTORY & GATEWAY ---
+
+class ParkingSpotManagerFactory {
+    + getParkingSpotManager(VehicleType type) : ParkingSpotManager
+}
+
+class EntranceGate {
+    - factory : ParkingSpotManagerFactory
+    --
+    + findParkingSpace(VehicleType type) : ParkingSpot
+    + bookParkingSpot(Vehicle v) : Ticket
+    + generateTicket(Vehicle v, ParkingSpot ps) : Ticket
+}
+
+class ExitGate {
+    - factory : ParkingSpotManagerFactory
+    - cost_comp_fact : CostComputationFactory
+    --
+    + priceCalculation(Ticket ticket) : int
+    + payment() : void
+    + removeVehicle(Ticket ticket) : void
+}
+
+' --- COST & PRICING LOGIC ---
+
+class CostComputationFactory {
+    + getCostComputation(Ticket ticket) : CostComputation
+}
+
+abstract class CostComputation {
+    # pricing_strategy : PricingStrategy
+    --
+    + calculate(Ticket ticket) : int
+}
+
+class TwoWheelerCostComputation extends CostComputation
+class FourWheelerCostComputation extends CostComputation
+
+interface PricingStrategy {
+    + price(Ticket ticket) : int
+}
+
+class HourlyPricingStrategy implements PricingStrategy
+class MinutePricingStrategy implements PricingStrategy
+
+' --- RELATIONSHIPS ---
+
+' Gate Logic
+EntranceGate ..> ParkingSpotManagerFactory
+ExitGate ..> ParkingSpotManagerFactory
+ExitGate ..> CostComputationFactory
+
+' Managers & Strategies
+ParkingSpotManager "1" o-- "*" ParkingSpot
+ParkingSpotManager --> ParkingStrategy
+ParkingSpotManagerFactory ..> ParkingSpotManager
+
+' Cost & Pricing
+CostComputationFactory ..> CostComputation
+CostComputation --> PricingStrategy
+
+' Entities
+Vehicle ..> VehicleType
+ParkingSpot "1" o-- "0..1" Vehicle
+Ticket "1" -- "1" Vehicle
+Ticket "1" -- "1" ParkingSpot
+
+@enduml
